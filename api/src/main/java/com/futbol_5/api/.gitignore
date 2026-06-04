@@ -1,0 +1,9 @@
+# Compilados
+target/
+
+# IntelliJ
+.idea/
+*.iml
+
+# Variables sensibles
+application-local.yaml
