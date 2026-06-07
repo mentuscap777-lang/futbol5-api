@@ -1,20 +1,21 @@
 package com.futbol_5.api.repository;
 
-// ==========================================
-// IMPORTS SPRING DATA JPA
-// ==========================================
+/**
+ * IMPORTS DATA JPA
+ */
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-// ==========================================
-// IMPORTS JAVA
-// ==========================================
+/**
+ * IMPORTS JAVA */
 import java.util.List;
 
-// ==========================================
-// IMPORTS ENTIDAD
-// ==========================================
+
+/**
+ * IMPORTS ENTIDAD
+ */
 import com.futbol_5.api.entity.Training;
 
 public interface TrainingRepository extends JpaRepository<Training, Long> {
