@@ -1,8 +1,5 @@
 package com.futbol_5.api.security;
 
-// ==========================================
-// IMPORTS SPRING SECURITY
-// ==========================================
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -22,45 +19,37 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-// ==========================================
-// IMPORTS REPOSITORIO
-// ==========================================
 import com.futbol_5.api.repository.UserRepository;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity // Activa @PreAuthorize en los controllers
+@EnableMethodSecurity
 public class SecurityConfig {
 
+    // Solo UserRepository — JwtAuthFilter se recibe como parámetro del método
+    // Esto rompe el ciclo completamente
     private final UserRepository userRepository;
-    private final JwtAuthFilter jwtAuthFilter;
 
-    public SecurityConfig(UserRepository userRepository, JwtAuthFilter jwtAuthFilter) {
+    public SecurityConfig(UserRepository userRepository) {
         this.userRepository = userRepository;
-        this.jwtAuthFilter = jwtAuthFilter;
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http,
+                                                   JwtAuthFilter jwtAuthFilter) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
-                // Sin estado: JWT no necesita sesión en el servidor
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Rutas públicas — no requieren token
                         .requestMatchers("/api/v1/auth/**").permitAll()
-                        // Swagger — público para documentación
                         .requestMatchers(
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
                                 "/api-docs/**"
                         ).permitAll()
-                        // Solo ADMIN puede registrar entrenamientos
                         .requestMatchers(HttpMethod.POST, "/api/v1/trainings").hasRole("ADMIN")
-                        // ADMIN y USER pueden ver titulares
                         .requestMatchers(HttpMethod.GET, "/api/v1/trainings/starters").hasAnyRole("ADMIN", "USER")
-                        // Cualquier otra ruta requiere autenticación
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider())
@@ -78,9 +67,8 @@ public class SecurityConfig {
 
     @Bean
     public AuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(passwordEncoder());
         provider.setUserDetailsService(userDetailsService());
-        provider.setPasswordEncoder(passwordEncoder());
         return provider;
     }
 
@@ -92,8 +80,6 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        // BCrypt: algoritmo seguro para encriptar contraseñas
-        // nunca se guarda la contraseña en texto plano
         return new BCryptPasswordEncoder();
     }
 }

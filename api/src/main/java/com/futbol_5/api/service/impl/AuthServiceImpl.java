@@ -1,38 +1,16 @@
 package com.futbol_5.api.service.impl;
 
-// ==========================================
-// IMPORTS SPRING
-// ==========================================
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-// ==========================================
-// IMPORTS DTOs
-// ==========================================
 import com.futbol_5.api.DTO.AuthResponseDTO;
 import com.futbol_5.api.DTO.LoginRequestDTO;
 import com.futbol_5.api.DTO.RegisterRequestDTO;
-
-// ==========================================
-// IMPORTS ENTIDAD
-// ==========================================
 import com.futbol_5.api.entity.User;
-
-// ==========================================
-// IMPORTS REPOSITORIO
-// ==========================================
 import com.futbol_5.api.repository.UserRepository;
-
-// ==========================================
-// IMPORTS SECURITY
-// ==========================================
 import com.futbol_5.api.security.JwtService;
-
-// ==========================================
-// IMPORTS SERVICIO
-// ==========================================
 import com.futbol_5.api.service.AuthService;
 
 @Service
@@ -56,28 +34,23 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResponseDTO register(RegisterRequestDTO request) {
-        // Verifica que el username no esté en uso
         if (userRepository.findByUsername(request.getUsername()).isPresent()) {
             throw new RuntimeException("El username ya está en uso");
         }
 
-        // Crea el usuario con la contraseña encriptada
         User user = new User();
         user.setUsername(request.getUsername());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRole(request.getRole());
+        user.setRole("USER");
 
         userRepository.save(user);
 
-        // Genera y retorna el token JWT
-        String token = jwtService.generateToken(user);
+        String token = jwtService.generateToken(user.getUsername());
         return new AuthResponseDTO(token);
     }
 
     @Override
     public AuthResponseDTO login(LoginRequestDTO request) {
-        // Spring Security verifica username y password automáticamente
-        // Lanza excepción si las credenciales son incorrectas
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.getUsername(),
@@ -85,11 +58,10 @@ public class AuthServiceImpl implements AuthService {
                 )
         );
 
-        // Si llegó aquí, las credenciales son correctas
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-        String token = jwtService.generateToken(user);
+        String token = jwtService.generateToken(user.getUsername());
         return new AuthResponseDTO(token);
     }
 }

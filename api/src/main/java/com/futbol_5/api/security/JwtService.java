@@ -1,54 +1,39 @@
 package com.futbol_5.api.security;
 
 // ==========================================
-// IMPORTS JWT
+// IMPORTS JWT 0.12.x (nueva API)
 // ==========================================
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 
 // ==========================================
 // IMPORTS SPRING
 // ==========================================
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 // ==========================================
 // IMPORTS JAVA
 // ==========================================
-import java.security.Key;
+import javax.crypto.SecretKey;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.function.Function;
 
 @Service
 public class JwtService {
 
-    // Toma el valor de jwt.secret-key del application.yaml
-    @Value("${jwt.secret-key}")
-    private String secretKey;
+    private final String secretKey = "NGY3YTljMWQ4ZTZiMmYzYTVjN2Q5ZTFmNmE4YjNjMmQ=";
+    private final long expiration = 86400000; // 24 horas en milisegundos
 
-    // Toma el valor de jwt.expiration del application.yaml
-    @Value("${jwt.expiration}")
-    private long expiration;
-
-    // Genera un token JWT para el usuario
-    public String generateToken(UserDetails userDetails) {
-        return generateToken(new HashMap<>(), userDetails);
-    }
-
-    // Genera token con claims extra si se necesitan
-    public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
+    // Genera token JWT
+    public String generateToken(String username) {
         return Jwts.builder()
-                .setClaims(extraClaims)
-                .setSubject(userDetails.getUsername())
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + expiration))
-                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+                .subject(username)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + expiration))
+                .signWith(getSigningKey())
                 .compact();
     }
 
@@ -68,12 +53,12 @@ public class JwtService {
         return extractExpiration(token).before(new Date());
     }
 
-    // Extrae la fecha de expiración del token
+    // Extrae la fecha de expiración
     private Date extractExpiration(String token) {
         return extractClaim(token, Claims::getExpiration);
     }
 
-    // Método genérico para extraer cualquier claim del token
+    // Método genérico para extraer cualquier claim
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = extractAllClaims(token);
         return claimsResolver.apply(claims);
@@ -81,15 +66,15 @@ public class JwtService {
 
     // Decodifica y valida la firma del token
     private Claims extractAllClaims(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
+        return Jwts.parser()
+                .verifyWith(getSigningKey())
                 .build()
-                .parseClaimsJws(token)
-                .getBody();
+                .parseSignedClaims(token)
+                .getPayload();
     }
 
-    // Convierte el secretKey en una Key criptográfica
-    private Key getSigningKey() {
+    // Convierte el secretKey en una SecretKey criptográfica
+    private SecretKey getSigningKey() {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);
     }
